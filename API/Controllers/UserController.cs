@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace API.Controllers
@@ -19,11 +20,13 @@ namespace API.Controllers
     {
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
+        private readonly IPhotoService _photoService;
 
-        public UserController(IUserRepository userRepository,IMapper mapper)
+        public UserController(IUserRepository userRepository,IMapper mapper, IPhotoService photoService)
         {
             this._userRepository = userRepository;
             this._mapper = mapper;
+            this._photoService = photoService;
         }
         
         [HttpGet]
@@ -51,6 +54,109 @@ namespace API.Controllers
 
         }
 
+        [HttpPut("{userName}")]
+        public async Task<ActionResult> UpdateUser(string userName,[FromBody] MemberUpdateDTO memberUpdateDTO)
+        {
+            //var userName = User.FindFirst(ClaimTypes.NameIdentifier)?.Value; //ovim uzimamo userName iz jwt tokena koji se salje,
+                                                                             //i to je user kojeg cemo da updatejutjemo 
+
+            var user = await _userRepository.GetUserByUserNameAsync(userName);
+
+            _mapper.Map(memberUpdateDTO, user);
+            //_userRepository.Update(user); 
+
+            if(await _userRepository.SaveAllAsync()) //ako se sve normalno sacuvalo u bazi onda za put request ne vracamo nista posebno nazad klijentskoj strani
+            {
+                return NoContent();
+            }
+            return BadRequest("Failed to update user"); 
+
+        }
+
+        [HttpPost("add-photo/{userName}")]
+        public async Task<ActionResult<PhotoDTO>> AddPhoto(string userName,IFormFile file)
+        {
+            var user = await _userRepository.GetUserByUserNameAsync(userName);
+
+            var result =  await _photoService.AddPhotoAsync(file);
+
+            if (result.Error != null) return BadRequest(result.Error.Message);
+
+            var photo = new Photo
+            {
+                Url = result.SecureUrl.AbsoluteUri,
+                PublicId = result.PublicId
+            };
+            if(user.Photos.Count == 0)
+            {
+                photo.IsMain = true;   //ako user nije imao nijednu sliku do sada, onda mu ovo postaje glavna profilna slika
+            }
+
+            user.Photos.Add(photo); 
+
+            if(await _userRepository.SaveAllAsync())
+            {
+                return _mapper.Map<PhotoDTO>(photo);
+               
+            }
+
+            return BadRequest("Problem adding photos");
+        }
+
+        [HttpPut("set-main-photo/{userName}/{photoId}")]
+        public async Task<ActionResult> SetMainPhoto(string userName,int photoId)
+        {
+            //u ovoj metodi samo postavljamo neku fotografju da je glavna odnosno isMain = true, a ona fotografija koja je do
+            //sada bila glavna , e njoj sada stavljamo isMain na false . 
+
+            var user = await _userRepository.GetUserByUserNameAsync(userName);
+
+            var photo = user.Photos.FirstOrDefault(photo => photo.Id == photoId);
+
+            if (photo.IsMain) return BadRequest("This is alredy your main photo"); 
+
+            var currentMainPhoto  = user.Photos.FirstOrDefault(photo => photo.IsMain == true);
+
+            if(currentMainPhoto!= null)
+            {
+                currentMainPhoto.IsMain = false; 
+            }
+            photo.IsMain = true; 
+
+            if(await _userRepository.SaveAllAsync())
+            {
+                return NoContent(); 
+            }
+            return BadRequest("Something went from with setting main photo");
+        }
+
+        [HttpDelete("delete-photo/{userName}/{photoId}")]
+        public async Task<ActionResult> DeletePhoto(string userName,int photoId)
+        {
+            var user = await _userRepository.GetUserByUserNameAsync(userName);
+
+            var photo = user.Photos.FirstOrDefault(photo => photo.Id == photoId);
+
+            if (photo == null) return NotFound();
+            
+            if (photo.IsMain == true) return BadRequest("You can't delete your main photo");
+
+            if(photo.PublicId != null) //samo fotografije sa cloudinaryiija imaju publicId dok ostale nemaju taj publicID
+            {
+                var result =  await _photoService.DeletePhotoAsync(photo.PublicId);//ovde brisemo photografiju sa cloudinaryija
+                if(result.Error != null)
+                {
+                    return BadRequest(result.Error.Message); 
+                }
+            }
+            //a u svakom slucaju i ako je photografija sa clodinaryija i ako je obicna, hocemo da obrisemo njen url iz baze :
+            user.Photos.Remove(photo);
+
+            if (await _userRepository.SaveAllAsync()) return Ok();
+
+            return BadRequest("Problem with deleting photo"); 
+
+        }
 
     }
 }

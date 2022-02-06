@@ -25,6 +25,10 @@ namespace API.Extentions
                 options.UseSqlServer(_config.GetConnectionString("DefaultConnection"));
             });
 
+            services.Configure<CloudinarySettings>(_config.GetSection("CloudinarySettings"));//ovde pristupamo onim podesavanjima
+                                                                                             //koje smo napisali u appsettings.json fajlu
+            services.AddScoped<IPhotoService, PhotoService>();
+            
             return services;
         }
 

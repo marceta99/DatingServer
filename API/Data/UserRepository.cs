@@ -52,7 +52,7 @@ namespace API.Data
                                                                             //i photos i hocemo da se prikaze photo od nekog usera
                                                                             //i to include me podseca na JOIN , kao kada koristimo
                                                                             //JOIN u SQL upitima 
-        public async Task<bool> SaveAll()
+        public async Task<bool> SaveAllAsync()
         {
             return await _context.SaveChangesAsync() > 0; //ova metoda save, ako se nesto sacuvalo, vraca broj promena pa ako smo  
         }                                                 //nesto promenili u bazi, ova metoda ce da vrati broj promena
