@@ -26,10 +26,8 @@ namespace API.Entities
         public string Country { get; set; }
         public ICollection<Photo>  Photos { get; set; }
 
-       /* public int GetAge()
-        {
-            return this.DateOfBirth.CalculateAge(); //koristimo ovu extention metodu CalculateAge
-        }*/
+        public ICollection<UserLike> LikedByUsers { get; set; } //lista usera koji su lajkovali ovog usera
+        public ICollection<UserLike> LikedUsers { get; set; } //lista usera koje je ovaj user lajkovao 
 
     }
 }

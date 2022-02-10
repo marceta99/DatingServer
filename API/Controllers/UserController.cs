@@ -1,6 +1,8 @@
 ﻿using API.Data;
 using API.DTOS;
 using API.Entities;
+using API.Extentions;
+using API.Helpers;
 using API.Interfaces;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
@@ -29,8 +31,8 @@ namespace API.Controllers
             this._photoService = photoService;
         }
         
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<MemberDTO>>> GetUsers()
+        [HttpGet("{currentUserName}")]
+        public async Task<ActionResult<PagedList<MemberDTO>>> GetUsers(string currentUserName,[FromQuery] UserParams userParams)
         {
             /*var users = await _userRepository.GetUsersAsync();
             var usersToReturn = _mapper.Map<IEnumerable<MemberDTO>>(users); //mapiramo usere tipa AppUser u MemberDTO
@@ -38,11 +40,23 @@ namespace API.Controllers
             return Ok(usersToReturn); */
 
             //i ovde je moglo ovo gore ali ovo dole je malo bolja praksa da se mappovanje radi direktno u repository a ne ovde 
-            var users = await _userRepository.GetMembersAsync();
+            var currentUser = await _userRepository.GetUserByUserNameAsync(currentUserName);
+            userParams.CurrentUserName = currentUser?.UserName;
+            
+            if (string.IsNullOrEmpty(userParams.Gender))//ako klijent ne kaze specificno u httpReuqestu koji hoce pol, onda ce po defaultu da stavimo   
+            {                                          //da pol osoba koji se prikazuju bude suprotan od trenutnog pola korisnika
+                
+                userParams.Gender = currentUser?.Gender == "male" ? "female" : "male"; //ako je musko hocemo da vracamo sve zenske
+            }                                                                  //a ako je zensko, vracamo sve muskarce 
+            
+            var users = await _userRepository.GetMembersAsync(userParams);
+
+            Response.AddPaginationHeader(users.CurrentPage, users.PageSize, users.TotalCount, users.TotalPages); 
+
             return Ok(users);
         }
         
-        [HttpGet("{username}")]
+        [HttpGet("single/{username}")]
         public async Task<ActionResult<MemberDTO>> GetUser(string userName)
         {
             /*var user = await _userRepository.GetUserByUserNameAsync(userName);

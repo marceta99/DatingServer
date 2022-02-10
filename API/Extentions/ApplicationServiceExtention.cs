@@ -20,6 +20,8 @@ namespace API.Extentions
                                                                         //automapper profile, posto mozemo da imamo vise projekata
                                                                         //u nasem programo. Ovde imamo samo jedan projekat
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<ILikesRepository, LikesRepository>(); 
+
             services.AddScoped<ITokenService, TokenService>();
             services.AddDbContext<DataContext>(options => {
                 options.UseSqlServer(_config.GetConnectionString("DefaultConnection"));
@@ -28,6 +30,8 @@ namespace API.Extentions
             services.Configure<CloudinarySettings>(_config.GetSection("CloudinarySettings"));//ovde pristupamo onim podesavanjima
                                                                                              //koje smo napisali u appsettings.json fajlu
             services.AddScoped<IPhotoService, PhotoService>();
+
+            services.AddScoped<LogUserActivity>();//ovo je ona klasa sto smo kreirali za update kad je user bio poslednju put aktivan
             
             return services;
         }

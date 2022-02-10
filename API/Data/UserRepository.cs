@@ -1,5 +1,6 @@
 ﻿using API.DTOS;
 using API.Entities;
+using API.Helpers;
 using API.Interfaces;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
@@ -29,10 +30,37 @@ namespace API.Data
                 .SingleOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<MemberDTO>> GetMembersAsync()
+        public async Task<PagedList<MemberDTO>> GetMembersAsync(UserParams userParams)
         {
-            return await _context.Users
-                .ProjectTo<MemberDTO>(_mapper.ConfigurationProvider).ToListAsync();
+            //entitiy framework automatski dodaje neki tracking(praćenje) svaki put, medjutim to nam treba samo kada nesto
+            //menjamo u bazi, a posto mi ovde hocemo samo da citamo podatke iz baze, necemo nista da menjamo sa bazom
+            //onda mozemo da iskljucimo taj tracking sa ovim AsNoTracking(). 
+            var query = _context.Users.AsQueryable(); 
+
+            query = query.Where(u=> u.UserName != userParams.CurrentUserName);//necemo da se medju matchevima trenutnog usera
+                                                                               //prikazuje i njegov profil 
+            query = query.Where(u => u.Gender == userParams.Gender); //u userControlleru smo stavili suprotan pol od trenutnog 
+                                                                     //korisnik tako da ako je musko hocemo da prikazemo zene
+            
+            var minDateOfBirth = DateTime.Today.AddYears(-userParams.MaxAge - 1); //ovo ce nam koristiti da filtriramo korisnike
+            var maxDateOfBirth = DateTime.Today.AddYears(-userParams.MinAge); //po min i max godinama koje imaju
+
+            query = query.Where(u => u.DateOfBirth >= minDateOfBirth && u.DateOfBirth <= maxDateOfBirth);
+
+            switch (userParams.OrderBy) //sortianje 
+            {
+                case "created":
+                    query = query.OrderByDescending(u => u.Created); 
+                    break;
+                default:
+                    query = query.OrderByDescending(u => u.LastActive); 
+                    break;       
+            }
+
+            var filteredQuery = query.ProjectTo<MemberDTO>(_mapper.ConfigurationProvider).AsNoTracking();
+
+
+            return await PagedList<MemberDTO>.CreateAsync(filteredQuery, userParams.PageNumber, userParams.PageSize);
         }
 
         public async Task<AppUser> GetUserByIdAsync(int id)
