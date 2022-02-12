@@ -18,6 +18,8 @@ namespace API.Data
 
         //posto sa tabelom userLike uvodimo many to many realtionship onda za to moraju da imaju neka dodatna podesavanja u 
         //entity frameworku i zato overridujemo ovu onModelCrating metodu
+
+        public DbSet<Message> Messages { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -39,6 +41,17 @@ namespace API.Data
                .HasForeignKey(s => s.LikedUserId)
                .OnDelete(DeleteBehavior.NoAction);
 
+
+
+            builder.Entity<Message>()
+                .HasOne(u => u.Recipient)
+                .WithMany(m => m.MessagesRecived)
+                .OnDelete(DeleteBehavior.NoAction); 
+
+            builder.Entity<Message>()
+                .HasOne(u => u.Sender)
+                .WithMany(m => m.MessagesSent)
+                .OnDelete(DeleteBehavior.NoAction); 
         }
     }
 }

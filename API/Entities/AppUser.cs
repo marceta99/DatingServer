@@ -29,5 +29,9 @@ namespace API.Entities
         public ICollection<UserLike> LikedByUsers { get; set; } //lista usera koji su lajkovali ovog usera
         public ICollection<UserLike> LikedUsers { get; set; } //lista usera koje je ovaj user lajkovao 
 
+        public ICollection<Message> MessagesSent { get; set; } //sve poruke koje je poslao
+        public ICollection<Message> MessagesRecived { get; set; } //sve poruke koje je primio
+
+
     }
 }

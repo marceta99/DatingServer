@@ -24,6 +24,13 @@ namespace API.Helpers
             CreateMap<MemberUpdateDTO, AppUser>(); //from MemberUpdateDTO to AppUser
 
             CreateMap<RegisterDTO, AppUser>(); //from RegisterDTO to AppUSer
+
+            //za mapovanje slike iz message u messageDTO trebace nam jos neka dodatna podesavanja : 
+            CreateMap<Message, MessageDTO>()  //from Message to MessageDTO
+            .ForMember(destionation => destionation.SenderPhotoUrl,
+            options => options.MapFrom(src => src.Sender.Photos.FirstOrDefault(x => x.IsMain).Url))
+             .ForMember(destionation => destionation.RecipientPhotoUrl,
+            options => options.MapFrom(src => src.Recipient.Photos.FirstOrDefault(x => x.IsMain).Url));
         }
     }
 }

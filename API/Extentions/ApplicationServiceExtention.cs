@@ -20,7 +20,8 @@ namespace API.Extentions
                                                                         //automapper profile, posto mozemo da imamo vise projekata
                                                                         //u nasem programo. Ovde imamo samo jedan projekat
             services.AddScoped<IUserRepository, UserRepository>();
-            services.AddScoped<ILikesRepository, LikesRepository>(); 
+            services.AddScoped<ILikesRepository, LikesRepository>();
+            services.AddScoped<IMessageRepository, MessageRepository>(); 
 
             services.AddScoped<ITokenService, TokenService>();
             services.AddDbContext<DataContext>(options => {
@@ -33,6 +34,7 @@ namespace API.Extentions
 
             services.AddScoped<LogUserActivity>();//ovo je ona klasa sto smo kreirali za update kad je user bio poslednju put aktivan
             
+
             return services;
         }
 
